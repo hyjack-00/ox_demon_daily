@@ -1,1 +1,5 @@
 config.json
+config.example.json
+
+__pycache__
+logs
