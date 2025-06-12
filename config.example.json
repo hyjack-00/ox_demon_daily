@@ -1,0 +1,26 @@
+{
+  "webhook_url": "https://open.feishu.cn/open-apis/bot/v2/hook/your-webhook-url",
+  "sources": [
+    {
+      "name": "github_trending",
+      "enabled": true,
+      "params": {
+        "language": "python",
+        "time_range": "daily"
+      }
+    }
+  ],
+  "postprocessors": [
+    {
+      "name": "keyword_filter",
+      "enabled": true,
+      "params": {
+        "keywords": ["AI", "大模型", "ChatGPT"]
+      }
+    }
+  ],
+  "schedule": {
+    "interval_minutes": 1440,
+    "timezone": "Asia/Shanghai"
+  }
+} 
