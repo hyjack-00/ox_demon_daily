@@ -10,6 +10,12 @@ import pytz
 from logger import logger
 from config import config
 
+def start_api_server():
+    from api_server import run_api
+    api_thread = threading.Thread(target=run_api, daemon=True)
+    api_thread.start()
+    logger.info("API 管理服务已在后台启动")
+
 class OxDemonService:
     def __init__(self):
         self.running = True
@@ -25,6 +31,7 @@ class OxDemonService:
         """处理终止信号"""
         logger.info(f"收到信号 {signum}，准备停止服务...")
         self.running = False
+        sys.exit(0)
     
     def _load_modules(self):
         """动态加载信息源和后处理器模块"""
@@ -118,6 +125,7 @@ class OxDemonService:
     def run(self):
         """运行服务"""
         logger.info("牛魔日报服务启动...")
+        start_api_server()  # 启动API服务
         
         while self.running:
             try:
@@ -130,12 +138,14 @@ class OxDemonService:
                 # 计算等待时间
                 wait_seconds = (next_run - now).total_seconds()
                 if wait_seconds > 0:
-                    logger.info(f"等待 {wait_seconds:.0f} 秒后执行下一次推送")
-                    # 分段等待，每10秒检查一次是否需要重载配置
-                    while wait_seconds > 0 and self.running:
-                        sleep_time = min(10, wait_seconds)
-                        time.sleep(sleep_time)
-                        wait_seconds -= sleep_time
+                    logger.info(f"等待 {wait_seconds:.1f} 秒后执行下一次推送")
+                    time.sleep(wait_seconds)
+                    
+                    # # 分段等待，再检查一次是否需要重载配置
+                    # while wait_seconds > 0 and self.running:
+                    #     sleep_time = min(5, wait_seconds)
+                    #     time.sleep(sleep_time)
+                    #     wait_seconds -= sleep_time
                 
                 if not self.running:
                     break
