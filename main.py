@@ -9,6 +9,7 @@ import pytz
 
 from logger import logger
 from config import config
+from processors.base import BaseProcessor
 
 def start_api_server():
     from api_server import run_api
@@ -38,22 +39,34 @@ class OxDemonService:
         # 加载信息源
         for source_config in config.get_sources():
             try:
-                module_name = f"sources.{source_config['name']}"
+                module_name = f"source.{source_config['name']}"
                 module = importlib.import_module(module_name)
                 self.sources[source_config['name']] = module
                 logger.info(f"成功加载信息源: {source_config['name']}")
             except Exception as e:
                 logger.error(f"加载信息源 {source_config['name']} 失败: {e}")
-        
+
         # 加载后处理器
         for processor_config in config.get_postprocessors():
             try:
-                module_name = f"postprocessors.{processor_config['name']}"
+                module_name = f"processors.{processor_config['name']}"
                 module = importlib.import_module(module_name)
-                self.postprocessors[processor_config['name']] = module
+                processor = getattr(module, f"{processor_config['name']}_processor")
+                if not isinstance(processor, BaseProcessor):
+                    raise TypeError(f"处理器 {processor_config['name']} 不是 BaseProcessor 的实例")
+                self.postprocessors[processor_config['name']] = processor
                 logger.info(f"成功加载后处理器: {processor_config['name']}")
             except Exception as e:
                 logger.error(f"加载后处理器 {processor_config['name']} 失败: {e}")
+        
+        # 如果没有加载任何后处理器，使用默认处理器
+        if not self.postprocessors:
+            try:
+                from processors.default import default_processor
+                self.postprocessors['default'] = default_processor
+                logger.info("没有加载任何后处理器，使用默认处理器")
+            except Exception as e:
+                logger.error(f"加载默认处理器失败: {e}")
     
     def _reload_config(self):
         """重新加载配置和模块"""
