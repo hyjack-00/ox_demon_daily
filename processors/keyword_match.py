@@ -57,5 +57,5 @@ class KeywordMatchProcessor(BaseProcessor):
         return filtered_content
 
 
-# 创建处理器实例
+# 创建同名处理器实例
 keyword_match_processor = KeywordMatchProcessor() 

@@ -110,5 +110,5 @@ class GitHubTrendingSource(BaseSource):
         
         return message
 
-# 创建实例并注册
-github_trending = GitHubTrendingSource() 
+# 创建同名信息源实例
+github_trending_source = GitHubTrendingSource() 

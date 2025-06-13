@@ -17,5 +17,5 @@ class DefaultProcessor(BaseProcessor):
         return content
 
 
-# 创建默认处理器实例
+# 创建同名处理器实例
 default_processor = DefaultProcessor() 
