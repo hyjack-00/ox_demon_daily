@@ -8,7 +8,7 @@ from .base import BaseSource
 class GitHubTrendingSource(BaseSource):
     """GitHub Trending 信息源"""
     
-    def get_data(self, **kwargs) -> List[Dict[str, Any]]:
+    def fetch_data(self, **kwargs) -> str:
         """
         获取 GitHub Trending 数据并格式化为消息
         
@@ -114,4 +114,4 @@ class GitHubTrendingSource(BaseSource):
         return message
 
 # 创建同名信息源实例
-github_trending_source = GitHubTrendingSource() 
+github_trending_source = GitHubTrendingSource()

@@ -11,7 +11,7 @@ class Config:
     _default_config = {
         "webhook_url": "",
         "sources": [],
-        "postprocessors": [],
+        "processors": [],
         "schedule": {
             "interval_minutes": 1440,  # 默认每天
             "timezone": "Asia/Shanghai"
@@ -60,9 +60,9 @@ class Config:
         """获取所有启用的信息源配置"""
         return [s for s in self._config.get('sources', []) if s.get('enabled', True)]
     
-    def get_postprocessors(self) -> List[Dict[str, Any]]:
+    def get_processors(self) -> List[Dict[str, Any]]:
         """获取所有启用的后处理器配置"""
-        return [p for p in self._config.get('postprocessors', []) if p.get('enabled', True)]
+        return [p for p in self._config.get('processors', []) if p.get('enabled', True)]
     
     def get_schedule(self) -> Dict[str, Any]:
         """获取调度配置"""
@@ -79,9 +79,9 @@ class Config:
         logger.warning(f"未找到信息源: {source_name}")
         return False
     
-    def update_postprocessor_status(self, processor_name: str, enabled: bool) -> bool:
+    def update_processor_status(self, processor_name: str, enabled: bool) -> bool:
         """更新后处理器启用状态"""
-        for processor in self._config.get('postprocessors', []):
+        for processor in self._config.get('processors', []):
             if processor['name'] == processor_name:
                 processor['enabled'] = enabled
                 self._save_config()
@@ -129,5 +129,5 @@ if __name__ == "__main__":
     # 测试配置功能
     print("当前配置:", config.get_config())
     print("启用的信息源:", config.get_sources())
-    print("启用的后处理器:", config.get_postprocessors())
+    print("启用的后处理器:", config.get_processors())
     print("下次运行时间:", config.get_next_run_time()) 

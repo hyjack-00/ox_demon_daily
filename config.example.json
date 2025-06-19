@@ -9,7 +9,7 @@
       }
     }
   ],
-  "postprocessors": [
+  "processors": [
     {
       "name": "keyword_filter",
       "enabled": true,

@@ -19,7 +19,7 @@ def get_status():
     """获取当前服务状态和配置"""
     return {
         "sources": config.get_sources(),
-        "postprocessors": config.get_postprocessors(),
+        "processors": config.get_processors(),
         "schedule": config.get_schedule(),
         "webhook_url": config.get_webhook_url()
     }
