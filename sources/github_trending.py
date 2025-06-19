@@ -1,6 +1,6 @@
 import requests
 from bs4 import BeautifulSoup
-from typing import List, Dict
+from typing import List, Dict, Any
 import json
 from datetime import datetime
 from .base import BaseSource
@@ -8,7 +8,7 @@ from .base import BaseSource
 class GitHubTrendingSource(BaseSource):
     """GitHub Trending 信息源"""
     
-    def get_data(self, **kwargs) -> str:
+    def get_data(self, **kwargs) -> List[Dict[str, Any]]:
         """
         获取 GitHub Trending 数据并格式化为消息
         
@@ -16,11 +16,16 @@ class GitHubTrendingSource(BaseSource):
             **kwargs: 可选的参数，包括 time_range
         
         Returns:
-            str: 格式化后的消息
+            List[Dict[str, Any]]: 格式化后的消息
         """
         time_range = kwargs.get('time_range', 'daily')
         repos = self._get_github_trending(time_range=time_range)
-        return self._format_trending_message(repos)
+        content = self._format_trending_message(repos)
+        return [{
+            "title": "Daily Github Trending",
+            "source": "github_trending",
+            "content": content
+        }]
     
     def _get_github_trending(self, time_range: str = "daily") -> List[Dict]:
         """
@@ -104,9 +109,7 @@ class GitHubTrendingSource(BaseSource):
         for i, repo in enumerate(repos, 1):
             message += f"{i}. {repo['name']}\n"
             message += f"   📝 {repo['description']}\n"
-            message += f"   💻 {repo['language']}\n"
-            message += f"   ⭐ {repo['stars']} | 🔄 {repo['forks']} | 📈 {repo['today_stars']}\n"
-            message += f"   🔗 {repo['url']}\n\n"
+            message += f"   ⭐ {repo['stars']} stars | 📈 {repo['today_stars']}\n\n"
         
         return message
 

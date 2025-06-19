@@ -124,13 +124,13 @@ class OxDemonService:
             # 这里需要根据实际的数据格式构建 markdown 消息
             markdown_content = "# 牛魔日报 🐮😈\n\n"
             markdown_content += f"*更新时间：{now.strftime('%Y-%m-%d %H:%M:%S')}*\n\n"
-            
+
             for item in data:
                 markdown_content += f"## {item.get('title', '无标题')}\n\n"
                 markdown_content += f"{item.get('content', '无内容')}\n\n"
                 if 'url' in item:
                     markdown_content += f"[查看详情]({item['url']})\n\n"
-                markdown_content += "---\n\n"
+                # markdown_content += "---\n\n"
             
             response = self.webhook.send_markdown_message(markdown_content)
             logger.info(f"发送数据成功，共 {len(data)} 条")
