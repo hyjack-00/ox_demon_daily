@@ -9,6 +9,8 @@ import pytz
 
 from logger import logger
 from config import config
+from processors.base import BaseProcessor
+from webhook import Webhook
 
 def start_api_server():
     from api_server import run_api
@@ -21,6 +23,7 @@ class OxDemonService:
         self.running = True
         self.sources = {}  # 动态加载的信息源模块
         self.postprocessors = {}  # 动态加载的后处理器模块
+        self.webhook = Webhook(config.get_webhook_url())
         self._load_modules()
         
         # 注册信号处理
@@ -40,20 +43,33 @@ class OxDemonService:
             try:
                 module_name = f"sources.{source_config['name']}"
                 module = importlib.import_module(module_name)
-                self.sources[source_config['name']] = module
+                source = getattr(module, f"{source_config['name']}_source")
+                self.sources[source_config['name']] = source
                 logger.info(f"成功加载信息源: {source_config['name']}")
             except Exception as e:
                 logger.error(f"加载信息源 {source_config['name']} 失败: {e}")
-        
+
         # 加载后处理器
         for processor_config in config.get_postprocessors():
             try:
-                module_name = f"postprocessors.{processor_config['name']}"
+                module_name = f"processors.{processor_config['name']}"
                 module = importlib.import_module(module_name)
-                self.postprocessors[processor_config['name']] = module
+                processor = getattr(module, f"{processor_config['name']}_processor")
+                if not isinstance(processor, BaseProcessor):
+                    raise TypeError(f"处理器 {processor_config['name']} 不是 BaseProcessor 的实例")
+                self.postprocessors[processor_config['name']] = processor
                 logger.info(f"成功加载后处理器: {processor_config['name']}")
             except Exception as e:
                 logger.error(f"加载后处理器 {processor_config['name']} 失败: {e}")
+        
+        # 如果没有加载任何后处理器，使用默认处理器
+        if not self.postprocessors:
+            try:
+                from processors.default import default_processor
+                self.postprocessors['default'] = default_processor
+                logger.info("没有加载任何后处理器，使用默认处理器")
+            except Exception as e:
+                logger.error(f"加载默认处理器失败: {e}")
     
     def _reload_config(self):
         """重新加载配置和模块"""
@@ -70,7 +86,7 @@ class OxDemonService:
             source_name = source_config['name']
             if source_name in self.sources:
                 try:
-                    source_data = self.sources[source_name].fetch(**source_config['params'])
+                    source_data = self.sources[source_name].get_data(**source_config['params'])
                     if source_data:
                         all_data.extend(source_data)
                         logger.info(f"从 {source_name} 获取到 {len(source_data)} 条数据")
@@ -101,7 +117,6 @@ class OxDemonService:
             return
         
         try:
-            from webhook import send_markdown_message
             # 获取当前时区的时间
             tz = pytz.timezone(config.get_schedule()['timezone'])
             now = datetime.now(tz)
@@ -117,7 +132,7 @@ class OxDemonService:
                     markdown_content += f"[查看详情]({item['url']})\n\n"
                 markdown_content += "---\n\n"
             
-            response = send_markdown_message(markdown_content)
+            response = self.webhook.send_markdown_message(markdown_content)
             logger.info(f"发送数据成功，共 {len(data)} 条")
         except Exception as e:
             logger.error(f"发送数据失败: {e}")
