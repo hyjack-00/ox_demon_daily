@@ -6,6 +6,7 @@ from datetime import datetime
 import threading
 from typing import Dict, Any, List
 import pytz
+import argparse
 
 from logger import logger
 from config import config
@@ -22,7 +23,7 @@ class OxDemonService:
     def __init__(self):
         self.running = True
         self.sources = {}  # 动态加载的信息源模块
-        self.postprocessors = {}  # 动态加载的后处理器模块
+        self.processors = {}  # 动态加载的后处理器模块
         self.webhook = Webhook(config.get_webhook_url())
         self._load_modules()
         
@@ -50,23 +51,23 @@ class OxDemonService:
                 logger.error(f"加载信息源 {source_config['name']} 失败: {e}")
 
         # 加载后处理器
-        for processor_config in config.get_postprocessors():
+        for processor_config in config.get_processors():
             try:
                 module_name = f"processors.{processor_config['name']}"
                 module = importlib.import_module(module_name)
                 processor = getattr(module, f"{processor_config['name']}_processor")
                 if not isinstance(processor, BaseProcessor):
                     raise TypeError(f"处理器 {processor_config['name']} 不是 BaseProcessor 的实例")
-                self.postprocessors[processor_config['name']] = processor
+                self.processors[processor_config['name']] = processor
                 logger.info(f"成功加载后处理器: {processor_config['name']}")
             except Exception as e:
                 logger.error(f"加载后处理器 {processor_config['name']} 失败: {e}")
         
         # 如果没有加载任何后处理器，使用默认处理器
-        if not self.postprocessors:
+        if not self.processors:
             try:
                 from processors.default import default_processor
-                self.postprocessors['default'] = default_processor
+                self.processors['default'] = default_processor
                 logger.info("没有加载任何后处理器，使用默认处理器")
             except Exception as e:
                 logger.error(f"加载默认处理器失败: {e}")
@@ -86,7 +87,7 @@ class OxDemonService:
             source_name = source_config['name']
             if source_name in self.sources:
                 try:
-                    source_data = self.sources[source_name].get_data(**source_config['params'])
+                    source_data = self.sources[source_name].fetch_data(**source_config['params'])
                     if source_data:
                         all_data.extend(source_data)
                         logger.info(f"从 {source_name} 获取到 {len(source_data)} 条数据")
@@ -97,11 +98,11 @@ class OxDemonService:
     def _process_data(self, data: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
         """使用所有启用的后处理器处理数据"""
         processed_data = data
-        for processor_config in config.get_postprocessors():
+        for processor_config in config.get_processors():
             processor_name = processor_config['name']
-            if processor_name in self.postprocessors:
+            if processor_name in self.processors:
                 try:
-                    processed_data = self.postprocessors[processor_name].process(
+                    processed_data = self.processors[processor_name].process(
                         processed_data,
                         **processor_config['params']
                     )
@@ -177,9 +178,24 @@ class OxDemonService:
         
         logger.info("牛魔日报服务已停止")
 
+    def test_instant_run(self):
+        """立即推送一次并结束服务"""
+        logger.info("牛魔日报立即推送测试开始...")
+        data = self._fetch_data()
+        processed_data = self._process_data(data)
+        self._send_data(processed_data)
+        logger.info("牛魔日报立即推送测试结束，服务退出。")
+
 def main():
+    parser = argparse.ArgumentParser(description="牛魔日报服务入口")
+    parser.add_argument('--test', '--instant', action='store_true', help='立即推送一次并退出')
+    args = parser.parse_args()
+
     service = OxDemonService()
-    service.run()
+    if args.test:
+        service.test_instant_run()
+    else:
+        service.run()
 
 if __name__ == "__main__":
     main()
